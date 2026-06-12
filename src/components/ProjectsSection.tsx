@@ -30,6 +30,18 @@ const PROJECTS: ProjectData[] = [
   },
   {
     number: '02',
+    category: 'Healthcare / Queue Management',
+    name: 'Kinestro',
+    description:
+      'A healthcare queue management system with patient-facing displays, receptionist controls, triage priorities, live token updates, estimated wait times, and queue analytics.',
+    liveUrl: 'https://github.com/sujay-237/Kinestro',
+    buttonLabel: 'GitHub Repo',
+    col1Image1: '/Kinestro.png',
+    col1Image2: '/Kinestro1.png',
+    col2Image: '/Kinestro2.png',
+  },
+  {
+    number: '03',
     category: 'Hackathon / AI Finance',
     name: 'WiseUp',
     description:

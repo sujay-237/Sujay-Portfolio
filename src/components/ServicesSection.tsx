@@ -16,9 +16,9 @@ const SERVICES = [
   },
   {
     number: '03',
-    title: 'Ethical Hacking',
+    title: 'Security Research & Ethical Hacking',
     description:
-      'Applying ethical hacking fundamentals from Internshala training to think through vulnerabilities, secure design, and responsible testing.',
+      'Applying ethical hacking, social engineering defense, OSINT, LLM security, and GRC fundamentals to responsible testing and secure design.',
   },
   {
     number: '04',

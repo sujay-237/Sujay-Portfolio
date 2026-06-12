@@ -16,9 +16,9 @@ Built with **React + TypeScript + Vite + Tailwind CSS + Framer Motion** and read
 ## Sections
 
 1. **Hero** - full-screen video intro, name, focus areas, and sound control
-2. **About** - student bio, technical focus, credentials, and tools
+2. **About** - current experience, education, technical focus, certifications, and tools
 3. **Expertise** - AI security systems, Python/C++ development, ethical hacking, leadership, and interfaces
-4. **Projects** - NeuroNet and WiseUp project cards with screenshots and links
+4. **Projects** - NeuroNet, Kinestro, and WiseUp project cards with screenshots and links
 5. **Contact** - email, LinkedIn, GitHub, and location footer
 
 ## Run locally
@@ -56,6 +56,7 @@ src/
 | Project | Link | Focus |
 | --- | --- | --- |
 | NeuroNet | [neuronet-phi.vercel.app](https://neuronet-phi.vercel.app/) | AI cybersecurity toolkit, sandbox execution, threat intelligence |
+| Kinestro | [github.com/sujay-237/Kinestro](https://github.com/sujay-237/Kinestro) | Healthcare queue management, triage, live tokens, wait estimates |
 | WiseUp | [github.com/sujay-237/Wiseup](https://github.com/sujay-237/Wiseup) | AI finance guidance, OCR, budgeting, Hindi/English support |
 
 ## Customization
