@@ -1,68 +1,96 @@
-import { useState, useEffect, useRef } from 'react';
-import FadeIn from './FadeIn';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import AnimatedGradientBg from './AnimatedGradientBg';
 
 const NAV_LINKS = [
   { label: 'About', href: '#about' },
   { label: 'Expertise', href: '#services' },
-  { label: 'Projects', href: '#projects' },
+  { label: 'Work', href: '#projects' },
+  { label: 'Stack', href: '#stack' },
   { label: 'Contact', href: '#contact' },
 ];
 
+// Split a phrase into reveal-on-mount words
+const RevealWord = ({ word, delay }: { word: string; delay: number }) => (
+  <span className="inline-block overflow-hidden align-baseline">
+    <motion.span
+      initial={{ y: '110%', opacity: 0 }}
+      animate={{ y: '0%', opacity: 1 }}
+      transition={{ duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="inline-block"
+    >
+      {word}
+    </motion.span>
+  </span>
+);
+
 const HeroSection = () => {
-  const sectionRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(true);
-  const [showSoundHint, setShowSoundHint] = useState(true);
+  const ref = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Auto-hide "Tap for sound" hint after 5 seconds
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  });
+  const [showVideo, setShowVideo] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+
+  const handleVideoError = () => setShowVideo(false);
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    
+    const video = videoRef.current;
+    const currentlyMuted = video.muted;
+    const newMutedState = !currentlyMuted;
+    
+    // Directly update the video element
+    video.muted = newMutedState;
+    
+    if (!newMutedState) {
+      // Unmuting - ensure volume is set
+      video.volume = Math.min(1, 0.75);
+      video.play().catch((err) => {
+        console.warn('Video play failed:', err);
+      });
+    }
+    
+    // Also update state for button text
+    setIsMuted(newMutedState);
+  };
+
   useEffect(() => {
-    const t = setTimeout(() => setShowSoundHint(false), 5000);
-    return () => clearTimeout(t);
-  }, []);
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
-  // Auto-mute video when scrolling past hero
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+  const titleY = useTransform(scrollYProgress, [0, 1], [0, -160]);
+  const titleScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0.25]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, 240]);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) {
-          const v = videoRef.current;
-          if (v && !v.muted) {
-            v.muted = true;
-            setMuted(true);
-          }
-        }
-      },
-      { threshold: 0, rootMargin: '-50% 0px 0px 0px' }
-    );
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
-
-  // Snap-scroll: one wheel tick / keypress while at top -> jump to About
+  // One-tick scroll snap to About
   useEffect(() => {
     let fired = false;
 
-      const goToAbout = () => {
-        if (fired) return;
-        fired = true;
-        const about = document.getElementById('about');
-        if (about) about.scrollIntoView({ behavior: 'auto', block: 'start' });
-      };
+    const goToAbout = () => {
+      if (fired) return;
+      fired = true;
+      const about = document.getElementById('about');
+      if (about) about.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     const onWheel = (e: WheelEvent) => {
       if (fired) return;
       if (e.deltaY <= 0) return;
-      if (window.scrollY > 50) return;
+      if (window.scrollY > 60) return;
       e.preventDefault();
       goToAbout();
     };
 
     const onKey = (e: KeyboardEvent) => {
       if (fired) return;
-      if (window.scrollY > 50) return;
+      if (window.scrollY > 60) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         goToAbout();
@@ -77,147 +105,214 @@ const HeroSection = () => {
     };
   }, []);
 
-  const toggleMute = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-    setShowSoundHint(false);
-  };
-
   return (
-    <section ref={sectionRef} className="relative h-screen w-full overflow-hidden bg-black">
-      {/* Video background */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        className="absolute inset-0 h-full w-full object-cover"
-      >
-        <source src="/intro.mp4" type="video/mp4" />
-      </video>
+    <section
+      id="top"
+      ref={ref}
+      className="relative min-h-[760px] w-full overflow-hidden bg-ink-950"
+      style={{ paddingTop: 0 }}
+    >
+      <motion.div style={{ y: bgY }} className="absolute inset-0">
+        <AnimatedGradientBg />
+      </motion.div>
 
-      {/* Cinematic gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-black/40" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
-
-      {/* Content layer */}
-      <div className="relative z-10 flex h-full flex-col">
-        {/* Top bar */}
-        <FadeIn delay={0} y={-20} className="relative">
-          <div className="flex items-center justify-between px-6 md:px-10 pt-6 md:pt-8">
-            <ul className="flex items-center gap-5 sm:gap-8 md:gap-12">
-              {NAV_LINKS.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-xs sm:text-sm font-medium uppercase tracking-[0.2em] text-white/80 transition hover:text-white"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-
-            <a
-              href="#contact"
-              className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 sm:px-5 sm:py-2.5 text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-white/20 hover:scale-[1.03]"
-            >
-              Email me
-            </a>
-          </div>
-        </FadeIn>
-
-        {/* Middle-left: focus label + name + subtitle */}
-        <div className="flex flex-1 items-center">
-          <div className="w-full max-w-7xl px-6 md:px-10">
-            <FadeIn delay={0.3} y={20}>
-              <p className="mb-4 text-[10px] sm:text-xs font-medium uppercase tracking-[0.35em] text-white/60">
-                AI Security / 2026
-              </p>
-            </FadeIn>
-
-            <FadeIn delay={0.5} y={40}>
-              <h1
-                className="font-black uppercase leading-[0.88] tracking-tight text-white"
-                style={{ fontSize: 'clamp(3rem, 12vw, 10.5rem)' }}
-              >
-                Sujay<br />Lokhande
-              </h1>
-            </FadeIn>
-
-            <FadeIn delay={0.85} y={20}>
-              <p className="mt-5 md:mt-7 text-[10px] sm:text-xs md:text-sm font-medium uppercase tracking-[0.3em] text-white/75">
-                Software Intern / AI & Cybersecurity Student / Python & C++ Developer
-              </p>
-            </FadeIn>
-          </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div className="flex items-end justify-between px-6 md:px-10 pb-7 sm:pb-10 md:pb-12">
-          {/* Scroll indicator */}
-          <FadeIn delay={1.1} y={20}>
-            <a href="#about" aria-label="Scroll to next section" className="group flex flex-col items-center gap-3">
-              <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.35em] text-white/70 transition group-hover:text-white">
-                Scroll
-              </span>
-              <div className="relative h-12 w-px overflow-hidden bg-white/20">
-                <span
-                  className="absolute inset-x-0 top-0 h-1/2 w-full bg-white"
-                  style={{ animation: 'scrollLine 1.8s ease-in-out infinite' }}
-                />
-              </div>
-            </a>
-          </FadeIn>
-
-          {/* Mute toggle + Sound hint */}
-          <FadeIn delay={1.1} y={20}>
-            <div className="flex items-center gap-3">
-              {showSoundHint && (
-                <span
-                  className="hidden sm:inline text-[10px] font-medium uppercase tracking-[0.25em] text-white/80"
-                  style={{ animation: 'pulseFade 2s ease-in-out infinite' }}
-                >
-                  Tap for sound
-                </span>
-              )}
-              <button
-                onClick={toggleMute}
-                aria-label={muted ? 'Unmute video' : 'Mute video'}
-                className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20 hover:scale-110"
-              >
-                {muted ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                    <line x1="23" y1="9" x2="17" y2="15" />
-                    <line x1="17" y1="9" x2="23" y2="15" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </FadeIn>
-        </div>
+      {/* Top eyebrow line */}
+      <div className="absolute left-5 top-24 z-10 md:left-10 md:top-28">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.7 }}
+          className="pill"
+        >
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-300 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime-400" />
+          </span>
+          Available for internships · 2026
+        </motion.div>
       </div>
 
-      <style>{`
-        @keyframes scrollLine {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(200%); }
-        }
-        @keyframes pulseFade {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 1; }
-        }
-      `}</style>
+      {/* Top right corner version tag */}
+      <div className="absolute right-5 top-28 z-10 hidden md:right-10 md:block">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.4, duration: 0.6 }}
+          className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-300/60"
+        >
+          v3.0 / build 2026.06
+        </motion.div>
+      </div>
+
+      {/* Intro video / placeholder */}
+      <div className="absolute right-5 top-24 z-40 flex w-[240px] flex-col gap-2 md:right-10 lg:right-14 xl:right-20">
+        {showVideo ? (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.5, duration: 0.7 }}
+            className="relative h-32 w-full overflow-hidden rounded-[20px] border border-white/10 bg-black/60 shadow-[0_30px_120px_-35px_rgba(56,189,248,0.25)] pointer-events-auto"
+          >
+            <video
+              ref={videoRef}
+              src="/intro.mp4"
+              autoPlay
+              muted={isMuted}
+              loop
+              preload="auto"
+              playsInline
+              onError={handleVideoError}
+              className="h-full w-full object-cover pointer-events-none"
+            />
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="absolute bottom-3 right-3 z-20 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-[10px] uppercase tracking-[0.24em] text-mist-100 transition hover:bg-white/10 cursor-pointer pointer-events-auto"
+            >
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.5, duration: 0.7 }}
+            className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-[28px] border border-white/10 bg-black/60 p-4 text-center text-sm text-mist-200/80 shadow-[0_30px_120px_-35px_rgba(56,189,248,0.25)]"
+          >
+            <span className="font-semibold text-mist-100">Intro video</span>
+            <span className="text-[11px] leading-5 text-mist-300/75">
+              Could not load the intro video. Check the file or source path.
+            </span>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Centered content */}
+      <motion.div
+        style={{ y: titleY, scale: titleScale, opacity: titleOpacity }}
+        className="relative z-10 flex min-h-[calc(100vh-5rem)] flex-col justify-center px-5 md:px-10"
+      >
+        <div className="mx-auto w-full max-w-[1400px]">
+          {/* Massive gradient title */}
+          <h1
+            className="font-black uppercase leading-[0.9] tracking-[-0.04em]"
+            style={{ fontSize: 'clamp(2.4rem, 9vw, 6rem)' }}
+          >
+            <span className="block">
+              <RevealWord word="Sujay" delay={0.2} />
+              &nbsp;
+              <RevealWord word="Lokhande" delay={0.32} />
+            </span>
+            <span className="mt-2 block text-gradient-electric">
+              <RevealWord word="Building" delay={0.5} />
+              &nbsp;
+              <RevealWord word="secure" delay={0.6} />
+              &nbsp;
+              <RevealWord word="things." delay={0.7} />
+            </span>
+          </h1>
+
+          {/* Subhead */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0, duration: 0.7 }}
+            className="mt-8 flex flex-col gap-6 md:mt-12 md:flex-row md:items-end md:justify-between"
+          >
+            <p
+              className="max-w-2xl font-light text-mist-100/85"
+              style={{ fontSize: 'clamp(0.85rem, 1vw, 0.98rem)' }}
+            >
+              AI &amp; cybersecurity student / software intern building{' '}
+              <span className="text-mist-50">threat-intel tools</span>,{' '}
+              <span className="text-mist-50">secure web apps</span>, and{' '}
+              <span className="text-mist-50">hackathon products</span> with Python, C++,
+              and modern web stacks.
+            </p>
+
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <a
+                href="#projects"
+                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-mist-50 px-6 py-3 text-xs font-medium uppercase tracking-[0.18em] text-ink-950 transition-transform hover:scale-[1.03]"
+              >
+                <span className="relative z-10">View projects</span>
+                <span className="relative z-10 transition-transform group-hover:translate-x-1">→</span>
+                <span className="absolute inset-0 -z-0 bg-gradient-to-r from-sky-300 to-lime-300 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              </a>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-300/60">
+                scroll to explore ↓
+              </span>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Bottom strip — meta + scroll indicator */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 flex items-end justify-between px-5 pb-8 md:px-10 md:pb-10">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.7 }}
+          className="hidden flex-col gap-1 sm:flex"
+        >
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-300/60">
+            based / pune, india
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-300/60">
+            focus / ai + security
+          </span>
+        </motion.div>
+
+        <motion.a
+          href="#about"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 0.6 }}
+          className="group flex flex-col items-center gap-3"
+          aria-label="Scroll to next section"
+        >
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-200/70 transition-colors group-hover:text-mist-50">
+            scroll
+          </span>
+          <div className="relative h-12 w-px overflow-hidden bg-white/15">
+            <span className="absolute inset-x-0 top-0 h-1/2 w-full bg-gradient-to-b from-sky-300 to-lime-300 animate-scroll-line" />
+          </div>
+        </motion.a>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.7 }}
+          className="hidden flex-col items-end gap-1 sm:flex"
+        >
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-300/60">
+            current / software intern
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-mist-300/60">
+            @ mesmerise soft-tech
+          </span>
+        </motion.div>
+      </div>
+
+      {/* Floating skill chips */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.8, duration: 1 }}
+        className="absolute right-5 bottom-32 z-10 hidden flex-col gap-2 lg:right-14 lg:flex xl:right-20"
+      >
+        {['Python', 'C++', 'AI/ML', 'Security', 'React'].map((tag, i) => (
+          <motion.span
+            key={tag}
+            initial={{ x: 40, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 1.8 + i * 0.1, duration: 0.6 }}
+            className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-mist-200 backdrop-blur"
+          >
+            {tag}
+          </motion.span>
+        ))}
+      </motion.div>
     </section>
   );
 };
